@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MathMetrics — Smart Tests &amp; Assessments</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+:root{
+  --bg:#FFF8F0;
+  --bg2:#FFEFDD;
+  --ink:#21243D;
+  --muted:#6B6F8A;
+  --card:#FFFFFF;
+  --coral:#FF6B6B;
+  --teal:#00B5A5;
+  --amber:#FFB703;
+  --blue:#4361EE;
+  --lilac:#9B5DE5;
+  --green:#2EC27E;
+  --red:#E5484D;
+  --line:#EFE6D8;
+  --shadow:0 18px 40px -18px rgba(33,36,61,.28);
+  --shadow-sm:0 8px 22px -14px rgba(33,36,61,.35);
+  --radius:22px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:
+    radial-gradient(1200px 600px at 90% -10%, #FFE9C9 0%, transparent 55%),
+    radial-gradient(900px 500px at -10% 110%, #D9F6F2 0%, transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,.serif{font-family:'Fraunces',serif}
+button{font-family:inherit;cursor:pointer;border:none}
+input,select,textarea{font-family:inherit}
+a{color:inherit}
+.hidden{display:none !important}
+
+/* ---------- Decorative floating math symbols ---------- */
+.bg-symbols{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg-symbols span{
+  position:absolute;font-family:'Fraunces',serif;font-weight:700;
+  opacity:.08;animation:float 14s ease-in-out infinite;
+}
+@keyframes float{
+  0%,100%{transform:translateY(0) rotate(0)}
+  50%{transform:translateY(-26px) rotate(8deg)}
+}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px clamp(18px,5vw,48px);
+  backdrop-filter:blur(10px);
+  background:rgba(255,248,240,.72);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:1.35rem}
+.logo-mark{
+  width:42px;height:42px;border-radius:13px;display:grid;place-items:center;
+  background:conic-gradient(from 210deg,var(--coral),var(--amber),var(--teal),var(--blue),var(--coral));
+  color:#fff;font-family:'Fraunces';font-weight:900;font-size:1.3rem;
+  box-shadow:var(--shadow-sm);transform:rotate(-6deg);
+  transition:transform .4s cubic-bezier(.3,1.4,.5,1)
+}
+.brand:hover .logo-mark{transform:rotate(6deg) scale(1.06)}
+.brand small{display:block;font-family:'Plus Jakarta Sans';font-weight:600;font-size:.62rem;letter-spacing:.22em;color:var(--muted);text-transform:uppercase}
+.top-actions{display:flex;gap:10px;align-items:center}
+
+/* ---------- Buttons ---------- */
+.btn{
+  padding:12px 20px;border-radius:14px;font-weight:700;font-size:.92rem;
+  transition:transform .15s ease, box-shadow .2s ease, background .2s ease;
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn-primary{background:var(--ink);color:#fff;box-shadow:var(--shadow-sm)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.btn-coral{background:var(--coral);color:#fff;box-shadow:0 10px 24px -12px var(--coral)}
+.btn-coral:hover{transform:translateY(-2px)}
+.btn-teal{background:var(--teal);color:#fff;box-shadow:0 10px 24px -12px var(--teal)}
+.btn-teal:hover{transform:translateY(-2px)}
+.btn-amber{background:var(--amber);color:#3a2c00}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--ink)}
+.btn-danger{background:#fff;color:var(--red);border:1.5px solid #F7D4D5}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-sm{padding:8px 14px;font-size:.82rem;border-radius:11px}
+.btn-block{width:100%;justify-content:center}
+
+/* ---------- Layout ---------- */
+.page{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:clamp(20px,5vw,46px)}
+
+/* ---------- Landing / Hero ---------- */
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;padding-top:30px}
+@media(max-width:880px){.hero{grid-template-columns:1fr;gap:30px;text-align:center}}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);
+  padding:8px 16px;border-radius:999px;font-weight:700;font-size:.78rem;color:var(--teal);
+  box-shadow:var(--shadow-sm);animation:pop .6s both
+}
+.hero h1{font-size:clamp(2.6rem,6vw,4.6rem);line-height:1.02;letter-spacing:-.02em;margin:18px 0;font-weight:900}
+.hero h1 .grad{
+  background:linear-gradient(105deg,var(--coral),var(--lilac) 45%,var(--blue));
+  -webkit-background-clip:text;background-clip:text;color:transparent
+}
+.hero p.lead{font-size:1.12rem;color:var(--muted);max-width:520px;line-height:1.6}
+@media(max-width:880px){.hero p.lead{margin:0 auto}}
+.hero-cta{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+@media(max-width:880px){.hero-cta{justify-content:center}}
+.hero-stats{display:flex;gap:30px;margin-top:38px}
+@media(max-width:880px){.hero-stats{justify-content:center}}
+.hero-stats .s{font-family:'Fraunces';font-weight:900;font-size:1.9rem}
+.hero-stats .s span{display:block;font-family:'Plus Jakarta Sans';font-weight:600;font-size:.78rem;color:var(--muted)}
+
+/* Hero visual card */
+/* Doodle stage (replaces hero card) */
+.doodle-stage{position:relative;animation:pop .8s .15s both;display:grid;place-items:center;min-height:380px}
+.doodle-svg{width:100%;max-width:480px;overflow:visible;animation:bob 6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.doodle-svg .d{stroke-dasharray:900;stroke-dashoffset:900;animation:draw 1.4s ease forwards}
+.doodle-svg .d2{animation-delay:.35s}.doodle-svg .d3{animation-delay:.55s}
+.doodle-svg .d4{animation-delay:.7s}.doodle-svg .d5{animation-delay:.85s}.doodle-svg .d6{animation-delay:1s}
+@keyframes draw{to{stroke-dashoffset:0}}
+.dood-pi{font-family:'Fraunces';font-weight:900;font-size:74px;opacity:0;animation:fade .6s .9s forwards}
+.dood-eq{font-family:'Fraunces';font-weight:700;font-size:30px;opacity:0;animation:fade .6s 1s forwards}
+.dood-grade{font-family:'Fraunces';font-weight:900;font-size:46px;opacity:0;animation:fade .6s 1.2s forwards;transform-box:fill-box;transform-origin:center}
+.dood-op{font-family:'Fraunces';font-weight:700;font-size:40px;opacity:.55;animation:wobble 5s ease-in-out infinite}
+.dood-op:nth-of-type(2){animation-delay:1s}.dood-op:nth-of-type(3){animation-delay:2s}
+@keyframes wobble{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.spark{transform-box:fill-box;transform-origin:center;animation:twinkle 2.4s ease-in-out infinite}
+.spark.s2{animation-delay:.8s}.spark.s3{animation-delay:1.5s}
+@keyframes twinkle{0%,100%{opacity:.3;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(45deg)}}
+.doodle-badge{position:absolute;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:8px 15px;font-weight:800;font-size:.82rem;box-shadow:var(--shadow-sm);animation:floaty 5s ease-in-out infinite}
+.doodle-badge.b1{top:6%;right:2%;color:var(--green);animation-delay:0s}
+.doodle-badge.b2{bottom:18%;left:-2%;color:var(--coral);animation-delay:1.4s}
+.doodle-badge.b3{bottom:2%;right:8%;color:var(--amber);animation-delay:2.6s}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
+@media(max-width:880px){.doodle-stage{min-height:320px}.doodle-badge{display:none}}
+
+/* Feature strip */
+.features{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:74px}
+@media(max-width:880px){.features{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.features{grid-template-columns:1fr}}
+.feature{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow-sm);transition:transform .25s ease}
+.feature:hover{transform:translateY(-6px)}
+.feature .ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:1.4rem;margin-bottom:14px}
+.feature h3{font-size:1.1rem;margin-bottom:6px}
+.feature p{font-size:.88rem;color:var(--muted);line-height:1.5}
+
+/* ---------- Auth choice cards ---------- */
+.choice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
+@media(max-width:780px){.choice-grid{grid-template-columns:1fr}}
+.choice{
+  position:relative;border-radius:22px;padding:26px;color:#fff;overflow:hidden;cursor:pointer;
+  box-shadow:var(--shadow);transition:transform .25s ease;min-height:170px;display:flex;flex-direction:column;justify-content:space-between
+}
+.choice:hover{transform:translateY(-6px) scale(1.01)}
+.choice.c1{background:linear-gradient(135deg,#4361EE,#9B5DE5)}
+.choice.c2{background:linear-gradient(135deg,#FF6B6B,#FFB703)}
+.choice.c3{background:linear-gradient(135deg,#00B5A5,#2EC27E)}
+.choice .big-ic{font-size:2.2rem}
+.choice h3{font-size:1.45rem;color:#fff}
+.choice p{opacity:.9;font-size:.9rem;margin-top:4px}
+.choice .arrow{position:absolute;right:22px;bottom:22px;font-size:1.4rem;transition:transform .25s}
+.choice:hover .arrow{transform:translateX(6px)}
+
+/* ---------- Modal ---------- */
+.modal-back{position:fixed;inset:0;background:rgba(33,36,61,.45);backdrop-filter:blur(4px);z-index:100;display:grid;place-items:center;padding:20px;animation:fade .2s}
+.modal{background:var(--card);border-radius:24px;padding:30px;width:100%;max-width:430px;box-shadow:var(--shadow);animation:pop .35s both;position:relative;max-height:90vh;overflow:auto}
+.modal.wide{max-width:760px}
+.modal h2{font-size:1.7rem;margin-bottom:4px}
+.modal .sub{color:var(--muted);font-size:.92rem;margin-bottom:22px}
+.modal .x{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:10px;background:var(--bg);font-size:1.1rem;color:var(--muted)}
+.modal .x:hover{background:#FFE3E3;color:var(--red)}
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:700;font-size:.85rem;margin-bottom:7px}
+.field input,.field select,.field textarea{
+  width:100%;padding:13px 15px;border-radius:13px;border:1.5px solid var(--line);
+  background:#fff;font-size:.95rem;transition:.2s;color:var(--ink)
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px rgba(67,97,238,.12)}
+.err{color:var(--red);font-size:.82rem;margin-top:6px;font-weight:600;min-height:1em}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:14px 24px;border-radius:14px;font-weight:600;z-index:200;box-shadow:var(--shadow);animation:slideup .35s both}
+.toast.ok{background:var(--green)} .toast.bad{background:var(--red)}
+
+/* ---------- Dashboard shell ---------- */
+.dash{display:none}
+.dash.active{display:block}
+.dash-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:8px}
+.dash-head h1{font-size:clamp(1.8rem,4vw,2.6rem)}
+.dash-head .who{color:var(--muted);font-weight:600}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:24px 0 28px;background:#fff;padding:7px;border-radius:16px;border:1px solid var(--line);width:fit-content;max-width:100%;overflow:auto}
+.tab{padding:10px 18px;border-radius:11px;font-weight:700;font-size:.9rem;color:var(--muted);background:transparent;transition:.2s;white-space:nowrap}
+.tab.active{background:var(--ink);color:#fff}
+.panel{display:none;animation:fade .3s}
+.panel.active{display:block}
+
+/* stat cards */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+@media(max-width:780px){.stat-row{grid-template-columns:1fr 1fr}}
+.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
+.stat .v{font-family:'Fraunces';font-weight:900;font-size:2.1rem;line-height:1}
+.stat .l{color:var(--muted);font-weight:600;font-size:.84rem;margin-top:6px}
+.stat .bar{position:absolute;left:0;top:0;bottom:0;width:6px}
+
+/* cards / lists */
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+.card h2{font-size:1.4rem;margin-bottom:4px}
+.card .cdesc{color:var(--muted);font-size:.9rem;margin-bottom:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:880px){.grid2{grid-template-columns:1fr}}
+
+.test-item{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:15px;margin-bottom:12px;transition:.2s;flex-wrap:wrap}
+.test-item:hover{border-color:var(--blue);background:#FAFBFF}
+.test-item .ti-main{flex:1;min-width:200px}
+.test-item h3{font-size:1.08rem}
+.test-item .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}
+.chip{font-size:.74rem;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.chip.q{background:#EAF0FF;color:var(--blue)}
+.chip.m{background:#FFF3E0;color:#B26a00}
+.chip.t{background:#FFF0F0;color:var(--coral)}
+.chip.done{background:#E4F8EF;color:#0d8c54}
+.chip.draft{background:#FFF3DA;color:#9a6a00}
+.chip.live{background:#E4F8EF;color:#0d8c54}
+.section-label{font-weight:800;font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 12px}
+
+.empty{text-align:center;padding:46px 20px;color:var(--muted)}
+.empty .e-ic{font-size:3rem;margin-bottom:10px;opacity:.6}
+
+/* question type picker cards */
+.qtype-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:780px){.qtype-grid{grid-template-columns:1fr 1fr}}
+.qtype-card{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:16px;transition:.2s;position:relative;overflow:hidden}
+.qtype-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--blue);transform:scaleY(0);transition:.2s;transform-origin:bottom}
+.qtype-card:hover{transform:translateY(-4px);border-color:var(--blue);box-shadow:var(--shadow-sm)}
+.qtype-card:hover::before{transform:scaleY(1)}
+.qtype-card.t-mcq::before{background:var(--blue)}.qtype-card.t-fill::before{background:var(--teal)}
+.qtype-card.t-imcq::before{background:var(--lilac)}.qtype-card.t-ifill::before{background:var(--coral)}
+.qt-ic{font-size:1.5rem}
+.qt-name{font-weight:800;font-size:.95rem}
+.qt-desc{font-size:.76rem;color:var(--muted);font-weight:500}
+
+/* edit banner */
+.edit-note{background:#FFF6E5;border:1px solid #FFE2A8;color:#7a5a00;border-radius:12px;padding:10px 16px;font-weight:700;font-size:.85rem;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* sticky action bar */
+.action-bar{position:sticky;bottom:14px;z-index:25;margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:18px;padding:14px 22px;box-shadow:var(--shadow)}
+.ab-stats{display:flex;align-items:center;gap:18px}
+.ab-stats>div{display:flex;flex-direction:column;line-height:1}
+.ab-num{font-family:'Fraunces';font-weight:900;font-size:1.6rem}
+.ab-lbl{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.ab-div{width:1px;height:34px;background:var(--line)}
+.ab-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* question builder */
+.qbuild{border:1.5px solid var(--line);border-left:5px solid var(--blue);border-radius:16px;padding:18px;margin-bottom:14px;background:#fff;position:relative;box-shadow:var(--shadow-sm);animation:pop .3s both}
+.qbuild.t-mcq{border-left-color:var(--blue)}.qbuild.t-fill{border-left-color:var(--teal)}
+.qbuild.t-imcq{border-left-color:var(--lilac)}.qbuild.t-ifill{border-left-color:var(--coral)}
+.qbuild .qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.qbuild .qnum{font-family:'Fraunces';font-weight:900;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+.qb-badge{font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.qb-tools{display:flex;gap:6px}
+.qb-tool{width:32px;height:32px;border-radius:9px;background:var(--bg);font-size:.95rem;color:var(--muted);display:grid;place-items:center;transition:.15s}
+.qb-tool:hover{background:var(--ink);color:#fff}
+.qb-tool.del:hover{background:var(--red)}
+.opt-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.opt-row input[type=radio]{width:20px;height:20px;accent-color:var(--green);flex:none}
+.opt-row input[type=text]{flex:1}
+.opt-row.is-correct input[type=text]{border-color:var(--green);background:#F2FBF6}
+.img-prev{max-width:160px;max-height:120px;border-radius:12px;margin-top:8px;border:1px solid var(--line);display:none}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:.9rem}
+.tbl th{text-align:left;padding:12px;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--line)}
+.tbl td{padding:12px;border-bottom:1px solid var(--line)}
+.tbl tr:hover td{background:var(--bg)}
+.rank{font-family:'Fraunces';font-weight:900;font-size:1.1rem;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--bg)}
+.rank.r1{background:#FFF4D6;color:#B8860B}.rank.r2{background:#EFF1F5;color:#7a7f8a}.rank.r3{background:#FBE7D6;color:#b5651d}
+
+/* taking test */
+.takebar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 20px;position:sticky;top:74px;z-index:30;box-shadow:var(--shadow-sm)}
+.timer-big{font-family:'Fraunces';font-weight:900;font-size:1.6rem;color:var(--coral)}
+.timer-big.warn{animation:shake .4s infinite}
+.q-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:var(--shadow-sm)}
+.q-card .qtitle{font-size:1.12rem;font-weight:700;margin-bottom:6px}
+.q-card .qmark{font-size:.78rem;color:var(--amber);font-weight:800;margin-bottom:14px;display:inline-block;background:#FFF6E5;padding:4px 10px;border-radius:999px}
+.q-img{max-width:100%;max-height:260px;border-radius:14px;margin:6px 0 16px;border:1px solid var(--line)}
+.choice-opt{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1.5px solid var(--line);border-radius:13px;margin-bottom:10px;cursor:pointer;transition:.18s;font-weight:600}
+.choice-opt:hover{border-color:var(--blue);background:#FAFBFF}
+.choice-opt input{width:20px;height:20px;accent-color:var(--blue)}
+.choice-opt.sel{border-color:var(--blue);background:#EFF3FF}
+.choice-opt.correct{border-color:var(--green);background:#E4F8EF}
+.choice-opt.wrong{border-color:var(--red);background:#FDECEC}
+.review-tag{font-weight:800;font-size:.8rem;padding:4px 10px;border-radius:999px;margin-left:8px}
+.review-tag.c{background:#E4F8EF;color:#0d8c54}
+.review-tag.w{background:#FDECEC;color:var(--red)}
+
+/* result splash */
+.result-splash{text-align:center;padding:30px 10px}
+.score-ring{width:170px;height:170px;margin:0 auto 18px;position:relative}
+.score-ring .num{position:absolute;inset:0;display:grid;place-items:center;font-family:'Fraunces';font-weight:900;font-size:2.4rem}
+
+/* config banner */
+.cfg-banner{background:#FFF6E5;border:1px solid #FFE2A8;color:#7a5a00;border-radius:14px;padding:12px 18px;font-size:.85rem;font-weight:600;margin-bottom:18px;display:flex;gap:10px;align-items:center}
+.cfg-banner.ok{background:#E4F8EF;border-color:#B7ECCF;color:#0d8c54}
+
+.chart-wrap{position:relative;height:280px}
+.chart-wrap.sm{height:230px}
+
+/* animations */
+@keyframes pop{0%{opacity:0;transform:scale(.94) translateY(10px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes slideup{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.5);opacity:.5}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:40px;height:40px;border:4px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto}
+</style>
+</head>
+<body>
+
+<div class="bg-symbols" id="bgSymbols"></div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="brand" onclick="App.goHome()">
+    <div class="logo-mark">∑</div>
+    <div>MathMetrics<small>Tests · Assess · Grow</small></div>
+  </div>
+  <div class="top-actions" id="topActions">
+    <button class="btn btn-ghost btn-sm" onclick="App.openLogin('student')">Student</button>
+    <button class="btn btn-primary btn-sm" onclick="App.openLogin('admin')">Admin</button>
+  </div>
+</header>
+
+<!-- ============ LANDING ============ -->
+<main class="page" id="landing">
+  <section class="hero">
+    <div>
+      <span class="eyebrow">✨ Smart auto-graded assessments</span>
+      <h1>Make every test feel like a <span class="grad">win.</span></h1>
+      <p class="lead">MathMetrics is a delightfully simple platform to build timed quizzes, auto-grade answers, and watch every student grow — with live analytics, pie charts &amp; leaderboards.</p>
+      <div class="hero-cta">
+        <button class="btn btn-coral" onclick="App.openLogin('student')">🎒 Student Login</button>
+        <button class="btn btn-teal" onclick="App.openLogin('admin')">🛠️ Admin Login</button>
+        <button class="btn btn-ghost" onclick="App.openCreateStudent()">➕ New Student</button>
+      </div>
+      <div class="hero-stats">
+        <div class="s">4<span>question types</span></div>
+        <div class="s">⏱<span>timed tests</span></div>
+        <div class="s">📈<span>live growth</span></div>
+      </div>
+    </div>
+
+    <!-- Hand-drawn math doodles -->
+    <div class="doodle-stage">
+      <svg viewBox="0 0 460 440" class="doodle-svg" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <!-- big sketchy circle -->
+        <g class="d d1" stroke="var(--blue)" stroke-width="4">
+          <path d="M230 50 C320 50 370 120 360 195 C352 262 295 300 225 296 C150 292 100 235 106 165 C111 104 160 52 230 50 Z"/>
+        </g>
+        <text x="218" y="195" class="dood-pi" fill="var(--blue)">π</text>
+
+        <!-- equation doodle -->
+        <g class="d d2" stroke="var(--coral)" stroke-width="3.5">
+          <path d="M40 360 q60 -28 120 0"/>
+        </g>
+        <text x="42" y="350" class="dood-eq" fill="var(--ink)">1 + 1 = 2</text>
+
+        <!-- pencil -->
+        <g class="d d3" stroke="var(--amber)" stroke-width="3.5">
+          <path d="M330 300 l70 -70" />
+          <path d="M392 222 l20 20 -10 12 -20 -20 z" fill="var(--amber)" stroke="var(--amber)"/>
+          <path d="M330 300 l-8 18 18 -8 z" fill="var(--ink)" stroke="var(--ink)"/>
+        </g>
+
+        <!-- lightbulb (idea) -->
+        <g class="d d4" stroke="var(--lilac)" stroke-width="3.5">
+          <path d="M70 110 a34 34 0 1 1 48 31 v14 h-28 v-14 a34 34 0 0 1 -20 -31 z"/>
+          <path d="M82 175 h24 M86 188 h16" stroke-width="3"/>
+          <path d="M104 50 l8 -14 M138 78 l16 -8 M40 86 l-16 -6" stroke-width="3"/>
+        </g>
+
+        <!-- mini bar graph -->
+        <g class="d d5" stroke="var(--teal)" stroke-width="3.5">
+          <path d="M330 410 h95 M330 410 v-78"/>
+          <rect x="342" y="378" width="16" height="32" rx="3" fill="var(--teal)" opacity=".25"/>
+          <rect x="366" y="360" width="16" height="50" rx="3" fill="var(--teal)" opacity=".45"/>
+          <rect x="390" y="340" width="16" height="70" rx="3" fill="var(--teal)" opacity=".7"/>
+          <path d="M340 388 l24 -16 24 -14 22 -18" stroke="var(--coral)" stroke-width="3"/>
+        </g>
+
+        <!-- A+ grade -->
+        <text x="250" y="380" class="dood-grade" fill="var(--green)">A+</text>
+        <g class="d d6" stroke="var(--green)" stroke-width="3">
+          <path d="M242 388 q34 22 70 4"/>
+        </g>
+
+        <!-- sparkles -->
+        <g class="spark" stroke="var(--amber)" stroke-width="3">
+          <path d="M180 70 v-18 M180 70 v18 M180 70 h-18 M180 70 h18"/>
+        </g>
+        <g class="spark s2" stroke="var(--coral)" stroke-width="3">
+          <path d="M400 130 v-12 M400 130 v12 M400 130 h-12 M400 130 h12"/>
+        </g>
+        <g class="spark s3" stroke="var(--blue)" stroke-width="2.5">
+          <path d="M60 250 v-9 M60 250 v9 M60 250 h-9 M60 250 h9"/>
+        </g>
+
+        <!-- divide & times floating -->
+        <text x="150" y="420" class="dood-op" fill="var(--coral)">÷</text>
+        <text x="410" y="300" class="dood-op" fill="var(--lilac)">×</text>
+        <text x="30" y="170" class="dood-op" fill="var(--teal)">√</text>
+      </svg>
+      <span class="doodle-badge b1">Auto-graded ⚡</span>
+      <span class="doodle-badge b2">Timed ⏱️</span>
+      <span class="doodle-badge b3">Leaderboards 🏆</span>
+    </div>
+  </section>
+
+  <!-- Choice cards -->
+  <div class="choice-grid">
+    <div class="choice c1" onclick="App.openLogin('student')">
+      <div class="big-ic">🎒</div>
+      <div><h3>Student</h3><p>Take tests, see your answers &amp; track your growth.</p></div>
+      <span class="arrow">→</span>
+    </div>
+    <div class="choice c2" onclick="App.openLogin('admin')">
+      <div class="big-ic">🛠️</div>
+      <div><h3>Admin</h3><p>Build tests, set timers, view analytics &amp; leaderboards.</p></div>
+      <span class="arrow">→</span>
+    </div>
+    <div class="choice c3" onclick="App.openCreateStudent()">
+      <div class="big-ic">➕</div>
+      <div><h3>New Student</h3><p>Create an account &amp; set your own password.</p></div>
+      <span class="arrow">→</span>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="features">
+    <div class="feature"><div class="ic" style="background:#EAF0FF">📝</div><h3>4 question types</h3><p>MCQ, fill-in-the-blank &amp; image-based versions of both.</p></div>
+    <div class="feature"><div class="ic" style="background:#FFF0F0">⏱️</div><h3>Optional timers</h3><p>Set a countdown per test — auto-submits at zero.</p></div>
+    <div class="feature"><div class="ic" style="background:#E4F8EF">⚡</div><h3>Auto-grading</h3><p>Define correct answers &amp; marks; scoring is instant.</p></div>
+    <div class="feature"><div class="ic" style="background:#FFF6E5">🏆</div><h3>Leaderboards</h3><p>Rank students and celebrate the top scorers.</p></div>
+  </div>
+</main>
+
+<!-- ============ ADMIN DASHBOARD ============ -->
+<main class="page dash" id="adminDash">
+  <div class="dash-head">
+    <div>
+      <h1>Admin Studio 🛠️</h1>
+      <p class="who">Signed in as <b>Admin</b></p>
+    </div>
+    <button class="btn btn-ghost" onclick="App.logout()">Log out</button>
+  </div>
+  <div id="cfgBannerAdmin"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="a-overview" onclick="App.switchTab(this,'admin')">📊 Overview</button>
+    <button class="tab" data-tab="a-create" onclick="App.switchTab(this,'admin')">✏️ Create Test</button>
+    <button class="tab" data-tab="a-tests" onclick="App.switchTab(this,'admin')">📚 Manage Tests</button>
+    <button class="tab" data-tab="a-students" onclick="App.switchTab(this,'admin')">👧 Students</button>
+    <button class="tab" data-tab="a-results" onclick="App.switchTab(this,'admin')">🧾 Results</button>
+    <button class="tab" data-tab="a-board" onclick="App.switchTab(this,'admin')">🏆 Leaderboard</button>
+  </div>
+
+  <!-- Overview -->
+  <section class="panel active" id="a-overview">
+    <div class="stat-row" id="adminStats"></div>
+    <div class="grid2">
+      <div class="card"><h2>Average score per test</h2><p class="cdesc">How each test is performing across all submissions.</p><div class="chart-wrap"><canvas id="chAvgTest"></canvas></div></div>
+      <div class="card"><h2>Pass vs Fail</h2><p class="cdesc">Submissions scoring 40%+ are a pass.</p><div class="chart-wrap"><canvas id="chPass"></canvas></div></div>
+    </div>
+    <div class="card"><h2>Top performers</h2><p class="cdesc">Average score across all attempts.</p><div class="chart-wrap"><canvas id="chTopStudents"></canvas></div></div>
+  </section>
+
+  <!-- Create test -->
+  <section class="panel" id="a-create">
+    <div class="card">
+      <div id="editBanner"></div>
+      <h2 id="createHeading">Create a new test ✏️</h2>
+      <p class="cdesc">Build your questions, set marks &amp; correct answers, then save as a draft or publish.</p>
+      <div class="grid2">
+        <div class="field"><label>Test title</label><input id="tTitle" placeholder="e.g. Fractions Challenge"></div>
+        <div class="field"><label>Short description</label><input id="tDesc" placeholder="e.g. Chapter 4 revision"></div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Timer (minutes) — leave blank for no timer</label>
+          <input id="tTimer" type="number" min="1" placeholder="e.g. 15">
+        </div>
+        <div class="field">
+          <label>Assign to</label>
+          <select id="tAssign"><option value="all">All students</option></select>
+        </div>
+      </div>
+
+      <h3 style="font-size:1.15rem;margin:22px 0 12px">Add a question</h3>
+      <div class="qtype-grid">
+        <button class="qtype-card t-mcq" onclick="App.addQuestion('mcq')">
+          <span class="qt-ic">🔘</span><span class="qt-name">Multiple choice</span><span class="qt-desc">Pick one correct option</span></button>
+        <button class="qtype-card t-fill" onclick="App.addQuestion('fill')">
+          <span class="qt-ic">✍️</span><span class="qt-name">Fill in the blank</span><span class="qt-desc">Type the exact answer</span></button>
+        <button class="qtype-card t-imcq" onclick="App.addQuestion('image-mcq')">
+          <span class="qt-ic">🖼️</span><span class="qt-name">Image · choice</span><span class="qt-desc">Show an image + options</span></button>
+        <button class="qtype-card t-ifill" onclick="App.addQuestion('image-fill')">
+          <span class="qt-ic">🎨</span><span class="qt-name">Image · fill blank</span><span class="qt-desc">Image + typed answer</span></button>
+      </div>
+
+      <h3 style="font-size:1.15rem;margin:24px 0 12px;display:flex;align-items:center;gap:10px">Questions <span id="qCountChip" class="chip q">0</span></h3>
+      <div id="qContainer"></div>
+    </div>
+
+    <!-- sticky action bar -->
+    <div class="action-bar">
+      <div class="ab-stats">
+        <div><span class="ab-num" id="abQ">0</span><span class="ab-lbl">questions</span></div>
+        <div class="ab-div"></div>
+        <div><span class="ab-num" id="totalMarks" style="color:var(--blue)">0</span><span class="ab-lbl">total marks</span></div>
+      </div>
+      <div class="ab-actions">
+        <button class="btn btn-ghost" onclick="App.cancelEdit()" id="cancelEditBtn" style="display:none">Cancel edit</button>
+        <button class="btn btn-amber" onclick="App.saveTest('draft')">📥 Save as draft</button>
+        <button class="btn btn-coral" onclick="App.saveTest('published')">🚀 Publish now</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Manage tests -->
+  <section class="panel" id="a-tests">
+    <div class="card"><h2>Your tests 📚</h2><p class="cdesc">Delete tests you no longer need.</p><div id="adminTestList"></div></div>
+  </section>
+
+  <!-- Students -->
+  <section class="panel" id="a-students">
+    <div class="card">
+      <h2>Manage students 👧</h2>
+      <p class="cdesc">Create student accounts. They can log in with these credentials.</p>
+      <div class="grid2">
+        <div class="field"><label>Full name</label><input id="nsName" placeholder="e.g. Aarav Sharma"></div>
+        <div class="field"><label>Username</label><input id="nsUser" placeholder="e.g. aarav"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Password</label><input id="nsPass" type="text" placeholder="set a password"></div>
+        <div class="field"><label>Class / Grade (optional)</label><input id="nsClass" placeholder="e.g. Grade 6"></div>
+      </div>
+      <div class="err" id="nsErr"></div>
+      <button class="btn btn-teal" onclick="App.adminCreateStudent()">➕ Create student</button>
+      <div style="margin-top:24px" id="studentList"></div>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section class="panel" id="a-results">
+    <div class="card"><h2>All results 🧾</h2><p class="cdesc">Every submission, newest first.</p><div id="resultsTable"></div></div>
+  </section>
+
+  <!-- Leaderboard -->
+  <section class="panel" id="a-board">
+    <div class="card"><h2>Leaderboard 🏆</h2><p class="cdesc">Ranked by average score across all tests.</p><div id="leaderboard"></div></div>
+  </section>
+</main>
+
+<!-- ============ STUDENT DASHBOARD ============ -->
+<main class="page dash" id="studentDash">
+  <div class="dash-head">
+    <div>
+      <h1 id="stuGreeting">Hi there! 🎒</h1>
+      <p class="who" id="stuSub">Let's learn something today.</p>
+    </div>
+    <button class="btn btn-ghost" onclick="App.logout()">Log out</button>
+  </div>
+  <div id="cfgBannerStudent"></div>
+
+  <div class="tabs" id="stuTabs">
+    <button class="tab active" data-tab="s-home" onclick="App.switchTab(this,'student')">🏠 My Dashboard</button>
+    <button class="tab" data-tab="s-tests" onclick="App.switchTab(this,'student')">📝 My Tests</button>
+    <button class="tab" data-tab="s-analytics" onclick="App.switchTab(this,'student')">📈 Analytics</button>
+  </div>
+
+  <!-- Home -->
+  <section class="panel active" id="s-home">
+    <div class="stat-row" id="stuStats"></div>
+    <div class="grid2">
+      <div class="card"><h2>Your growth 📈</h2><p class="cdesc">Score (%) over your attempts — watch it climb!</p><div class="chart-wrap"><canvas id="chGrowth"></canvas></div></div>
+      <div class="card"><h2>Correct vs incorrect</h2><p class="cdesc">Across all the questions you've answered.</p><div class="chart-wrap"><canvas id="chCorrect"></canvas></div></div>
+    </div>
+    <div class="card">
+      <h2>Pending tests ⏳</h2><p class="cdesc">Jump back in and finish these.</p>
+      <div id="stuPending"></div>
+    </div>
+  </section>
+
+  <!-- Tests -->
+  <section class="panel" id="s-tests">
+    <div class="card"><h2>Tests assigned to you 📝</h2><p class="cdesc">Take a test, or review one you've finished.</p><div id="stuTestList"></div></div>
+  </section>
+
+  <!-- Analytics -->
+  <section class="panel" id="s-analytics">
+    <div class="stat-row" id="stuAnaStats"></div>
+    <div class="grid2">
+      <div class="card"><h2>Score per test</h2><p class="cdesc">How you did on each test you attempted.</p><div class="chart-wrap"><canvas id="chPerTest"></canvas></div></div>
+      <div class="card"><h2>Time spent per test</h2><p class="cdesc">Minutes taken — compare with your average.</p><div class="chart-wrap"><canvas id="chTime"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- Taking a test (full screen panel) -->
+  <section class="panel" id="s-take">
+    <div class="takebar">
+      <div><div style="font-family:Fraunces;font-weight:900;font-size:1.3rem" id="takeTitle">Test</div><div style="color:var(--muted);font-weight:600;font-size:.85rem" id="takeMeta"></div></div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="timer-big hidden" id="takeTimer">--:--</div>
+        <button class="btn btn-coral" onclick="App.submitTest()">✅ Submit</button>
+      </div>
+    </div>
+    <div id="takeQuestions"></div>
+    <button class="btn btn-coral btn-block" style="margin-top:6px" onclick="App.submitTest()">✅ Submit my answers</button>
+  </section>
+
+  <!-- Review a test -->
+  <section class="panel" id="s-review">
+    <div class="takebar">
+      <div><div style="font-family:Fraunces;font-weight:900;font-size:1.3rem" id="reviewTitle">Review</div><div style="color:var(--muted);font-weight:600;font-size:.85rem" id="reviewMeta"></div></div>
+      <button class="btn btn-ghost" onclick="App.backToTests()">← Back</button>
+    </div>
+    <div id="reviewQuestions"></div>
+  </section>
+</main>
+
+<!-- ============ MODALS ROOT ============ -->
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<!-- ====================== FIREBASE CONFIG ====================== -->
+<!-- 👉 PASTE YOUR FIREBASE CONFIG BELOW (see the setup guide). 
+     If you leave the placeholder values, the app runs in OFFLINE mode
+     using your browser's localStorage so you can test everything. -->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "PASTE_API_KEY",
+    authDomain: "PASTE_PROJECT.firebaseapp.com",
+    projectId: "PASTE_PROJECT_ID",
+    storageBucket: "PASTE_PROJECT.appspot.com",
+    messagingSenderId: "PASTE_SENDER_ID",
+    appId: "PASTE_APP_ID"
+  };
+</script>
+
+<!-- ====================== APP LOGIC (Firebase + offline fallback) ====================== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc,
+  query, where, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ---------------- Data layer: Firebase OR localStorage ---------------- */
+const cfg = window.FIREBASE_CONFIG || {};
+const USE_FB = cfg.projectId && !String(cfg.projectId).startsWith("PASTE");
+let fdb = null;
+if (USE_FB) {
+  try { fdb = getFirestore(initializeApp(cfg)); }
+  catch(e){ console.error("Firebase init failed:", e); }
+}
+
+const LS = {
+  read(k){ try{return JSON.parse(localStorage.getItem("mm_"+k))||[]}catch{return []} },
+  write(k,v){ localStorage.setItem("mm_"+k, JSON.stringify(v)); }
+};
+
+const DB = {
+  online: !!fdb,
+
+  async add(coll, data){
+    if(fdb){ const r = await addDoc(collection(fdb,coll), {...data, createdAt: serverTimestamp()}); return r.id; }
+    const arr = LS.read(coll); const id = "id_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
+    arr.push({id, ...data, createdAt: Date.now()}); LS.write(coll,arr); return id;
+  },
+  async all(coll){
+    if(fdb){ const s = await getDocs(collection(fdb,coll)); return s.docs.map(d=>({id:d.id, ...d.data()})); }
+    return LS.read(coll);
+  },
+  async remove(coll, id){
+    if(fdb){ await deleteDoc(doc(fdb,coll,id)); return; }
+    LS.write(coll, LS.read(coll).filter(x=>x.id!==id));
+  },
+  async update(coll, id, data){
+    if(fdb){ await updateDoc(doc(fdb,coll,id), data); return; }
+    const arr=LS.read(coll); const i=arr.findIndex(x=>x.id===id);
+    if(i>-1){ arr[i]={...arr[i],...data}; LS.write(coll,arr); }
+  }
+};
+
+/* ---------------- Helpers ---------------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const norm = s => String(s??"").trim().toLowerCase().replace(/\s+/g,' ');
+function toast(msg,type=""){ const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg; $('#toastRoot').appendChild(t); setTimeout(()=>t.remove(),2600); }
+function tsVal(c){ if(!c) return 0; if(typeof c==='number') return c; if(c.seconds) return c.seconds*1000; if(c.toMillis) return c.toMillis(); return new Date(c).getTime()||0; }
+
+/* ---------------- Charts registry ---------------- */
+const charts = {};
+function mkChart(id,config){ if(charts[id]) charts[id].destroy(); const el=$('#'+id); if(!el) return; charts[id]=new Chart(el,config); }
+Chart.defaults.font.family="'Plus Jakarta Sans',sans-serif";
+Chart.defaults.color="#6B6F8A";
+const PALETTE=['#4361EE','#FF6B6B','#00B5A5','#FFB703','#9B5DE5','#2EC27E','#E5484D','#4D96FF'];
+
+/* ============================================================ */
+const App = {
+  session:null,          // {role:'admin'} or {role:'student', ...student}
+  draftQuestions:[],     // create-test working set
+  editingId:null,        // id of test being edited (else null = new)
+  taking:null,           // {test, startedAt}
+  timerInt:null,
+
+  /* ---------- bootstrap ---------- */
+  init(){
+    this.spawnSymbols();
+    this.renderCfgBanners();
+  },
+  spawnSymbols(){
+    const syms=['+','−','×','÷','π','∑','√','∞','%','=','∫','θ'];
+    const root=$('#bgSymbols');
+    for(let i=0;i<18;i++){
+      const s=document.createElement('span');
+      s.textContent=syms[i%syms.length];
+      s.style.left=Math.random()*100+'%';
+      s.style.top=Math.random()*100+'%';
+      s.style.fontSize=(1.6+Math.random()*3)+'rem';
+      s.style.animationDelay=(Math.random()*8)+'s';
+      s.style.color=PALETTE[i%PALETTE.length];
+      root.appendChild(s);
+    }
+  },
+  renderCfgBanners(){
+    const on = DB.online;
+    const html = on
+      ? `<div class="cfg-banner ok">🟢 Connected to Firebase — data is saved to the cloud.</div>`
+      : `<div class="cfg-banner">🟡 Offline mode (browser storage). Paste your Firebase config in the file to go online — see the setup guide.</div>`;
+    $('#cfgBannerAdmin').innerHTML=html;
+    $('#cfgBannerStudent').innerHTML=html;
+  },
+
+  /* ---------- navigation ---------- */
+  goHome(){ this.logout(); },
+  show(view){
+    $('#landing').style.display = view==='landing'?'block':'none';
+    $('#adminDash').classList.toggle('active', view==='admin');
+    $('#studentDash').classList.toggle('active', view==='student');
+    window.scrollTo({top:0,behavior:'smooth'});
+  },
+  switchTab(btn, scope){
+    const wrap = btn.closest('.dash');
+    $$('.tab',wrap).forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    const id = btn.dataset.tab;
+    $$('.panel',wrap).forEach(p=>p.classList.remove('active'));
+    $('#'+id).classList.add('active');
+    // refresh data-driven panels
+    if(scope==='admin') this.refreshAdmin(id);
+    if(scope==='student') this.refreshStudent(id);
+  },
+
+  /* ---------- modal engine ---------- */
+  modal(html){ $('#modalRoot').innerHTML = `<div class="modal-back" onclick="if(event.target===this)App.closeModal()">${html}</div>`; },
+  closeModal(){ $('#modalRoot').innerHTML=''; },
+
+  /* ---------- LOGIN ---------- */
+  openLogin(role){
+    const isAdmin = role==='admin';
+    this.modal(`
+      <div class="modal">
+        <button class="x" onclick="App.closeModal()">✕</button>
+        <h2>${isAdmin?'Admin login 🛠️':'Student login 🎒'}</h2>
+        <p class="sub">${isAdmin?'Use your admin credentials.':'Enter the username & password your teacher gave you.'}</p>
+        <div class="field"><label>Username</label><input id="liUser" placeholder="${isAdmin?'Admin':'your username'}"></div>
+        <div class="field"><label>Password</label><input id="liPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')App.doLogin('${role}')"></div>
+        <div class="err" id="liErr"></div>
+        <button class="btn ${isAdmin?'btn-primary':'btn-coral'} btn-block" onclick="App.doLogin('${role}')">Log in →</button>
+        ${isAdmin?'':'<p style="text-align:center;margin-top:14px;color:var(--muted);font-size:.86rem">No account? <a style="color:var(--blue);font-weight:700;cursor:pointer" onclick="App.openCreateStudent()">Create one</a></p>'}
+      </div>`);
+    setTimeout(()=>$('#liUser')?.focus(),50);
+  },
+  async doLogin(role){
+    const u = $('#liUser').value.trim(), p = $('#liPass').value;
+    const err = $('#liErr');
+    if(role==='admin'){
+      if(u==='Admin' && p==='Admin123'){
+        this.session={role:'admin'}; this.closeModal(); this.enterAdmin();
+      } else err.textContent='Wrong credentials. (Hint: Admin / Admin123)';
+      return;
+    }
+    const students = await DB.all('students');
+    const found = students.find(s=>norm(s.username)===norm(u) && s.password===p);
+    if(found){ this.session={role:'student',...found}; this.closeModal(); this.enterStudent(); }
+    else err.textContent='Username or password incorrect.';
+  },
+
+  /* ---------- CREATE STUDENT (public) ---------- */
+  openCreateStudent(){
+    this.modal(`
+      <div class="modal">
+        <button class="x" onclick="App.closeModal()">✕</button>
+        <h2>Create student ➕</h2>
+        <p class="sub">Pick a username and set your own password.</p>
+        <div class="field"><label>Full name</label><input id="csName" placeholder="e.g. Aarav Sharma"></div>
+        <div class="field"><label>Username</label><input id="csUser" placeholder="e.g. aarav"></div>
+        <div class="field"><label>Class / Grade (optional)</label><input id="csClass" placeholder="e.g. Grade 6"></div>
+        <div class="field"><label>Password</label><input id="csPass" type="password" placeholder="choose a password"></div>
+        <div class="field"><label>Confirm password</label><input id="csPass2" type="password" placeholder="repeat password"></div>
+        <div class="err" id="csErr"></div>
+        <button class="btn btn-teal btn-block" onclick="App.submitCreateStudent()">Create account 🎉</button>
+      </div>`);
+  },
+  async submitCreateStudent(){
+    const name=$('#csName').value.trim(), user=$('#csUser').value.trim(),
+          klass=$('#csClass').value.trim(), p1=$('#csPass').value, p2=$('#csPass2').value;
+    const err=$('#csErr');
+    if(!name||!user||!p1){ err.textContent='Name, username and password are required.'; return; }
+    if(p1!==p2){ err.textContent='Passwords do not match.'; return; }
+    if(p1.length<4){ err.textContent='Password should be at least 4 characters.'; return; }
+    const students = await DB.all('students');
+    if(students.some(s=>norm(s.username)===norm(user))){ err.textContent='That username is taken.'; return; }
+    await DB.add('students',{name,username:user,password:p1,klass});
+    this.closeModal();
+    toast('Account created! You can log in now 🎉','ok');
+    this.openLogin('student');
+  },
+
+  /* ============================================================
+     ADMIN
+  ============================================================ */
+  enterAdmin(){
+    this.show('admin');
+    $('#topActions').innerHTML='';
+    this.refreshAdmin('a-overview');
+  },
+  async refreshAdmin(tab){
+    if(tab==='a-overview') await this.adminOverview();
+    if(tab==='a-create'){ await this.loadAssignOptions(); this.renderQuestions(); }
+    if(tab==='a-tests')    await this.adminTests();
+    if(tab==='a-students') await this.adminStudents();
+    if(tab==='a-results')  await this.adminResults();
+    if(tab==='a-board')    await this.renderLeaderboard('#leaderboard');
+  },
+
+  async adminOverview(){
+    const [tests,results,students] = await Promise.all([DB.all('tests'),DB.all('results'),DB.all('students')]);
+    const avg = results.length? Math.round(results.reduce((a,r)=>a+(r.score/r.total*100),0)/results.length):0;
+    $('#adminStats').innerHTML = [
+      ['📚',tests.length,'Tests','var(--blue)'],
+      ['👧',students.length,'Students','var(--teal)'],
+      ['🧾',results.length,'Submissions','var(--amber)'],
+      ['📊',avg+'%','Avg score','var(--coral)']
+    ].map(([ic,v,l,c])=>`<div class="stat"><div class="bar" style="background:${c}"></div><div class="v">${v}</div><div class="l">${ic} ${l}</div></div>`).join('');
+
+    // avg per test
+    const byTest = tests.map(t=>{
+      const rs=results.filter(r=>r.testId===t.id);
+      const a=rs.length?Math.round(rs.reduce((s,r)=>s+r.score/r.total*100,0)/rs.length):0;
+      return {label:t.title,a};
+    });
+    mkChart('chAvgTest',{type:'bar',data:{labels:byTest.map(x=>x.label),datasets:[{label:'Avg %',data:byTest.map(x=>x.a),backgroundColor:PALETTE,borderRadius:10}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}});
+
+    const pass=results.filter(r=>r.score/r.total>=0.4).length, fail=results.length-pass;
+    mkChart('chPass',{type:'doughnut',data:{labels:['Pass (40%+)','Below 40%'],datasets:[{data:[pass,fail||(results.length?0:1)],backgroundColor:['#2EC27E','#E5484D'],borderWidth:0}]},
+      options:{cutout:'62%',plugins:{legend:{position:'bottom'}}}});
+
+    // top students by avg
+    const perStu={};
+    results.forEach(r=>{ (perStu[r.studentName]??=[]).push(r.score/r.total*100); });
+    const top=Object.entries(perStu).map(([n,arr])=>[n,Math.round(arr.reduce((a,b)=>a+b,0)/arr.length)]).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    mkChart('chTopStudents',{type:'bar',data:{labels:top.map(x=>x[0]),datasets:[{label:'Avg %',data:top.map(x=>x[1]),backgroundColor:'#9B5DE5',borderRadius:10}]},
+      options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,max:100}}}});
+  },
+
+  /* ----- create test: question builder ----- */
+  async loadAssignOptions(){
+    const sel=$('#tAssign'); const students=await DB.all('students');
+    sel.innerHTML='<option value="all">All students</option>'+students.map(s=>`<option value="${s.id}">${esc(s.name)} (@${esc(s.username)})</option>`).join('');
+  },
+  addQuestion(type){
+    const q={id:'q'+Date.now()+Math.random().toString(36).slice(2,5),type,text:'',marks:1,image:'',options:['','','',''],correctIndex:0,correctText:''};
+    this.draftQuestions.push(q);
+    this.renderQuestions();
+    setTimeout(()=>{ const el=$('#qContainer').lastElementChild; el&&el.scrollIntoView({behavior:'smooth',block:'center'}); },60);
+  },
+  removeQuestion(id){ this.draftQuestions=this.draftQuestions.filter(q=>q.id!==id); this.renderQuestions(); },
+  duplicateQuestion(id){
+    const i=this.draftQuestions.findIndex(q=>q.id===id); if(i<0) return;
+    const copy=JSON.parse(JSON.stringify(this.draftQuestions[i]));
+    copy.id='q'+Date.now()+Math.random().toString(36).slice(2,5);
+    this.draftQuestions.splice(i+1,0,copy); this.renderQuestions();
+  },
+  moveQuestion(id,dir){
+    const i=this.draftQuestions.findIndex(q=>q.id===id); const j=i+dir;
+    if(i<0||j<0||j>=this.draftQuestions.length) return;
+    [this.draftQuestions[i],this.draftQuestions[j]]=[this.draftQuestions[j],this.draftQuestions[i]];
+    this.renderQuestions();
+  },
+  typeMeta(type){
+    return {
+      'mcq':{name:'Multiple choice',ic:'🔘',cls:'t-mcq'},
+      'fill':{name:'Fill in the blank',ic:'✍️',cls:'t-fill'},
+      'image-mcq':{name:'Image · choice',ic:'🖼️',cls:'t-imcq'},
+      'image-fill':{name:'Image · fill',ic:'🎨',cls:'t-ifill'}
+    }[type];
+  },
+  renderQuestions(){
+    const c=$('#qContainer');
+    if(!this.draftQuestions.length){ c.innerHTML=`<div class="empty"><div class="e-ic">🧩</div>No questions yet — pick a type above to add one.</div>`; }
+    else c.innerHTML=this.draftQuestions.map((q,i)=>{
+      const isImg=q.type.startsWith('image');
+      const isMcq=q.type.endsWith('mcq');
+      const m=this.typeMeta(q.type);
+      return `<div class="qbuild ${m.cls}">
+        <div class="qhead">
+          <span class="qnum">Q${i+1} <span class="qb-badge">${m.ic} ${m.name}</span></span>
+          <div class="qb-tools">
+            <button class="qb-tool" title="Move up" onclick="App.moveQuestion('${q.id}',-1)">↑</button>
+            <button class="qb-tool" title="Move down" onclick="App.moveQuestion('${q.id}',1)">↓</button>
+            <button class="qb-tool" title="Duplicate" onclick="App.duplicateQuestion('${q.id}')">⧉</button>
+            <button class="qb-tool del" title="Delete" onclick="App.removeQuestion('${q.id}')">🗑</button>
+          </div>
+        </div>
+        <div class="field"><label>Question text</label><textarea rows="2" oninput="App.qEdit('${q.id}','text',this.value)" placeholder="Type the question...">${esc(q.text)}</textarea></div>
+        ${isImg?`<div class="field"><label>Image URL (or upload below)</label>
+            <input value="${esc(q.image)}" oninput="App.qEdit('${q.id}','image',this.value);App.qImgPrev('${q.id}',this.value)" placeholder="https://...">
+            <input type="file" accept="image/*" style="margin-top:8px" onchange="App.qUpload('${q.id}',this)">
+            <img class="img-prev" id="prev_${q.id}" ${q.image?`src="${esc(q.image)}" style="display:block"`:''}>
+          </div>`:''}
+        ${isMcq?`
+          <label style="font-weight:700;font-size:.85rem;display:block;margin-bottom:8px">Options — tap the dot to mark the correct one ✅</label>
+          ${q.options.map((o,oi)=>`<div class="opt-row ${q.correctIndex===oi?'is-correct':''}">
+            <input type="radio" name="cor_${q.id}" ${q.correctIndex===oi?'checked':''} onchange="App.qEdit('${q.id}','correctIndex',${oi});App.renderQuestions()">
+            <input type="text" value="${esc(o)}" oninput="App.qOpt('${q.id}',${oi},this.value)" placeholder="Option ${oi+1}">
+          </div>`).join('')}
+        `:`
+          <div class="field"><label>Correct answer (auto-graded, case-insensitive)</label>
+            <input value="${esc(q.correctText)}" oninput="App.qEdit('${q.id}','correctText',this.value)" placeholder="e.g. radius"></div>
+        `}
+        <div class="field" style="max-width:180px;margin-top:6px"><label>Marks</label>
+          <input type="number" min="1" value="${q.marks}" oninput="App.qEdit('${q.id}','marks',Math.max(1,parseInt(this.value)||1));App.recalcTotal()"></div>
+      </div>`;
+    }).join('');
+    this.recalcTotal();
+  },
+  qEdit(id,key,val){ const q=this.draftQuestions.find(x=>x.id===id); if(q){q[key]=val;} },
+  qOpt(id,oi,val){ const q=this.draftQuestions.find(x=>x.id===id); if(q) q.options[oi]=val; },
+  qImgPrev(id,url){ const el=$('#prev_'+id); if(el){ el.src=url; el.style.display=url?'block':'none'; } },
+  qUpload(id,input){
+    const f=input.files[0]; if(!f) return;
+    if(f.size>700000){ toast('Image is large; a smaller one (<700KB) is safer.','bad'); }
+    const rd=new FileReader();
+    rd.onload=()=>{ this.qEdit(id,'image',rd.result); this.qImgPrev(id,rd.result); this.renderQuestions(); };
+    rd.readAsDataURL(f);
+  },
+  recalcTotal(){
+    const t=this.draftQuestions.reduce((a,q)=>a+(parseInt(q.marks)||0),0);
+    const n=this.draftQuestions.length;
+    $('#totalMarks').textContent=t;
+    $('#abQ').textContent=n; $('#qCountChip').textContent=n;
+  },
+
+  async saveTest(status){
+    const title=$('#tTitle').value.trim();
+    if(!title){ toast('Give your test a title.','bad'); return; }
+    if(!this.draftQuestions.length){ toast('Add at least one question.','bad'); return; }
+    // validation is strict only when publishing; drafts can be incomplete
+    if(status==='published'){
+      for(const [i,q] of this.draftQuestions.entries()){
+        if(!q.text.trim()){ toast(`Q${i+1} needs question text.`,'bad'); return; }
+        if(q.type.endsWith('mcq')){
+          if(q.options.some(o=>!o.trim())){ toast(`Q${i+1}: fill all 4 options.`,'bad'); return; }
+        } else if(!q.correctText.trim()){ toast(`Q${i+1} needs a correct answer.`,'bad'); return; }
+        if(q.type.startsWith('image') && !q.image){ toast(`Q${i+1} needs an image.`,'bad'); return; }
+      }
+    }
+    const total=this.draftQuestions.reduce((a,q)=>a+(parseInt(q.marks)||0),0);
+    const payload={
+      title, desc:$('#tDesc').value.trim(), timer:parseInt($('#tTimer').value)||0,
+      assign:$('#tAssign').value, total, status,
+      questions: JSON.parse(JSON.stringify(this.draftQuestions))
+    };
+    if(this.editingId){ await DB.update('tests',this.editingId,payload); }
+    else { await DB.add('tests',payload); }
+    toast(status==='published'?'Test published! 🚀':'Saved to drafts 📥','ok');
+    this.resetBuilder();
+    // jump to manage tests
+    $$('#adminDash .tab').forEach(t=>t.classList.remove('active'));
+    const mt=$$('#adminDash .tab').find(t=>t.dataset.tab==='a-tests'); mt.classList.add('active');
+    $$('#adminDash .panel').forEach(p=>p.classList.remove('active')); $('#a-tests').classList.add('active');
+    this.adminTests();
+  },
+  resetBuilder(){
+    this.draftQuestions=[]; this.editingId=null;
+    $('#tTitle').value=''; $('#tDesc').value=''; $('#tTimer').value=''; $('#tAssign').value='all';
+    $('#createHeading').textContent='Create a new test ✏️';
+    $('#editBanner').innerHTML=''; $('#cancelEditBtn').style.display='none';
+    this.renderQuestions();
+  },
+  cancelEdit(){ this.resetBuilder(); toast('Edit cancelled.'); },
+
+  async editTest(id){
+    const tests=await DB.all('tests'); const t=tests.find(x=>x.id===id); if(!t) return;
+    this.editingId=id;
+    this.draftQuestions=JSON.parse(JSON.stringify(t.questions));
+    $('#tTitle').value=t.title||''; $('#tDesc').value=t.desc||'';
+    $('#tTimer').value=t.timer||''; 
+    await this.loadAssignOptions(); $('#tAssign').value=t.assign||'all';
+    $('#createHeading').textContent='Edit test ✏️';
+    $('#editBanner').innerHTML=`<div class="edit-note">✏️ Editing "<b>${esc(t.title)}</b>" — ${t.status==='published'?'currently published':'a draft'}. Save to update.</div>`;
+    $('#cancelEditBtn').style.display='inline-flex';
+    // switch to create tab
+    $$('#adminDash .tab').forEach(x=>x.classList.remove('active'));
+    const ct=$$('#adminDash .tab').find(x=>x.dataset.tab==='a-create'); ct.classList.add('active');
+    $$('#adminDash .panel').forEach(p=>p.classList.remove('active')); $('#a-create').classList.add('active');
+    this.renderQuestions();
+    window.scrollTo({top:0,behavior:'smooth'});
+  },
+
+  async setTestStatus(id,status){
+    await DB.update('tests',id,{status});
+    toast(status==='published'?'Test is now live 🚀':'Moved back to drafts 📥','ok');
+    this.adminTests();
+  },
+
+  async adminTests(){
+    const tests=await DB.all('tests'); const results=await DB.all('results');
+    const c=$('#adminTestList');
+    if(!tests.length){ c.innerHTML=`<div class="empty"><div class="e-ic">📚</div>No tests yet. Create one!</div>`; return; }
+    tests.sort((a,b)=>tsVal(b.createdAt)-tsVal(a.createdAt));
+    // drafts first for visibility
+    const drafts=tests.filter(t=>t.status==='draft');
+    const live=tests.filter(t=>t.status!=='draft');
+    const row=(t)=>{
+      const subs=results.filter(r=>r.testId===t.id).length;
+      const isDraft=t.status==='draft';
+      return `<div class="test-item">
+        <div class="ti-main">
+          <h3>${esc(t.title)} ${isDraft?'<span class="chip draft">● Draft</span>':'<span class="chip live">● Published</span>'}</h3>
+          <div class="meta">
+            <span class="chip q">${t.questions.length} Q</span>
+            <span class="chip m">${t.total} marks</span>
+            ${t.timer?`<span class="chip t">⏱ ${t.timer} min</span>`:'<span class="chip">No timer</span>'}
+            <span class="chip">${t.assign==='all'?'All students':'Assigned'}</span>
+            ${!isDraft?`<span class="chip done">${subs} submissions</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="App.editTest('${t.id}')">✏️ Edit</button>
+          ${isDraft
+            ? `<button class="btn btn-teal btn-sm" onclick="App.setTestStatus('${t.id}','published')">🚀 Publish</button>`
+            : `<button class="btn btn-amber btn-sm" onclick="App.setTestStatus('${t.id}','draft')">📥 Unpublish</button>`}
+          <button class="btn btn-danger btn-sm" onclick="App.deleteTest('${t.id}','${esc(t.title)}')">🗑</button>
+        </div>
+      </div>`;
+    };
+    c.innerHTML =
+      (drafts.length?`<div class="section-label">📝 Drafts (${drafts.length}) — only you can see these</div>`+drafts.map(row).join(''):'')+
+      (live.length?`<div class="section-label" style="margin-top:18px">✅ Published (${live.length}) — visible to students</div>`+live.map(row).join(''):'');
+  },
+  async deleteTest(id,title){
+    this.modal(`<div class="modal"><h2>Delete test?</h2><p class="sub">"${esc(title)}" will be removed. This can't be undone.</p>
+      <div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="App.closeModal()">Cancel</button>
+      <button class="btn btn-danger btn-block" onclick="App.confirmDelete('${id}')">Delete</button></div></div>`);
+  },
+  async confirmDelete(id){ await DB.remove('tests',id); this.closeModal(); toast('Test deleted.','ok'); this.adminTests(); },
+
+  async adminStudents(){
+    const students=await DB.all('students');
+    const results=await DB.all('results');
+    const c=$('#studentList');
+    if(!students.length){ c.innerHTML=`<div class="empty"><div class="e-ic">👧</div>No students yet. Create one above.</div>`; return; }
+    c.innerHTML=`<table class="tbl"><thead><tr><th>Name</th><th>Username</th><th>Class</th><th>Tests taken</th><th></th></tr></thead><tbody>${
+      students.map(s=>{
+        const taken=results.filter(r=>r.studentId===s.id).length;
+        return `<tr><td><b>${esc(s.name)}</b></td><td>@${esc(s.username)}</td><td>${esc(s.klass||'—')}</td><td>${taken}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="App.deleteStudent('${s.id}','${esc(s.name)}')">Remove</button></td></tr>`;
+      }).join('')
+    }</tbody></table>`;
+  },
+  async adminCreateStudent(){
+    const name=$('#nsName').value.trim(),user=$('#nsUser').value.trim(),pass=$('#nsPass').value,klass=$('#nsClass').value.trim();
+    const err=$('#nsErr'); err.textContent='';
+    if(!name||!user||!pass){ err.textContent='Name, username and password required.'; return; }
+    const students=await DB.all('students');
+    if(students.some(s=>norm(s.username)===norm(user))){ err.textContent='Username already taken.'; return; }
+    await DB.add('students',{name,username:user,password:pass,klass});
+    $('#nsName').value='';$('#nsUser').value='';$('#nsPass').value='';$('#nsClass').value='';
+    toast('Student created ✅','ok'); this.adminStudents(); this.loadAssignOptions();
+  },
+  async deleteStudent(id,name){
+    this.modal(`<div class="modal"><h2>Remove student?</h2><p class="sub">"${esc(name)}" will lose access. Their results remain.</p>
+      <div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="App.closeModal()">Cancel</button>
+      <button class="btn btn-danger btn-block" onclick="App.confirmDelStudent('${id}')">Remove</button></div></div>`);
+  },
+  async confirmDelStudent(id){ await DB.remove('students',id); this.closeModal(); toast('Student removed.','ok'); this.adminStudents(); },
+
+  async adminResults(){
+    const results=await DB.all('results'); const c=$('#resultsTable');
+    if(!results.length){ c.innerHTML=`<div class="empty"><div class="e-ic">🧾</div>No submissions yet.</div>`; return; }
+    results.sort((a,b)=>tsVal(b.submittedAt)-tsVal(a.submittedAt));
+    c.innerHTML=`<table class="tbl"><thead><tr><th>Student</th><th>Test</th><th>Score</th><th>%</th><th>Time</th><th>When</th></tr></thead><tbody>${
+      results.map(r=>{
+        const pct=Math.round(r.score/r.total*100);
+        const col=pct>=40?'var(--green)':'var(--red)';
+        const when=tsVal(r.submittedAt)?new Date(tsVal(r.submittedAt)).toLocaleString():'—';
+        return `<tr><td><b>${esc(r.studentName)}</b></td><td>${esc(r.testTitle)}</td>
+          <td>${r.score}/${r.total}</td><td style="color:${col};font-weight:800">${pct}%</td>
+          <td>${this.fmtTime(r.timeTaken)}</td><td style="color:var(--muted)">${when}</td></tr>`;
+      }).join('')
+    }</tbody></table>`;
+  },
+
+  async renderLeaderboard(sel){
+    const results=await DB.all('results'); const c=$(sel);
+    if(!results.length){ c.innerHTML=`<div class="empty"><div class="e-ic">🏆</div>No scores yet.</div>`; return; }
+    const map={};
+    results.forEach(r=>{ const k=r.studentId||r.studentName; (map[k]??={name:r.studentName,pcts:[],tests:0}); map[k].pcts.push(r.score/r.total*100); map[k].tests++; });
+    const board=Object.values(map).map(x=>({name:x.name,tests:x.tests,avg:Math.round(x.pcts.reduce((a,b)=>a+b,0)/x.pcts.length)})).sort((a,b)=>b.avg-a.avg);
+    c.innerHTML=`<table class="tbl"><thead><tr><th>Rank</th><th>Student</th><th>Tests</th><th>Avg score</th></tr></thead><tbody>${
+      board.map((b,i)=>`<tr><td><div class="rank ${i<3?'r'+(i+1):''}">${i+1}</div></td>
+        <td><b>${esc(b.name)}</b> ${i===0?'👑':''}</td><td>${b.tests}</td>
+        <td style="font-weight:800;color:var(--blue)">${b.avg}%</td></tr>`).join('')
+    }</tbody></table>`;
+  },
+
+  /* ============================================================
+     STUDENT
+  ============================================================ */
+  enterStudent(){
+    this.show('student');
+    $('#topActions').innerHTML='';
+    $('#stuGreeting').textContent=`Hi ${this.session.name.split(' ')[0]}! 🎒`;
+    $('#stuSub').textContent=this.session.klass?`${this.session.klass} · keep up the great work!`:`Let's learn something today.`;
+    this.refreshStudent('s-home');
+  },
+  async assignedTests(){
+    const tests=await DB.all('tests');
+    return tests.filter(t=>t.status!=='draft' && (t.assign==='all'||t.assign===this.session.id));
+  },
+  async myResults(){
+    const results=await DB.all('results');
+    return results.filter(r=>r.studentId===this.session.id);
+  },
+  async refreshStudent(tab){
+    if(tab==='s-home') await this.stuHome();
+    if(tab==='s-tests') await this.stuTests();
+    if(tab==='s-analytics') await this.stuAnalytics();
+  },
+
+  async stuHome(){
+    const [tests,mine]=await Promise.all([this.assignedTests(),this.myResults()]);
+    const doneIds=new Set(mine.map(r=>r.testId));
+    const pending=tests.filter(t=>!doneIds.has(t.id));
+    const avg=mine.length?Math.round(mine.reduce((a,r)=>a+r.score/r.total*100,0)/mine.length):0;
+    const avgTime=mine.length?Math.round(mine.reduce((a,r)=>a+r.timeTaken,0)/mine.length):0;
+    $('#stuStats').innerHTML=[
+      ['📝',mine.length,'Tests done','var(--blue)'],
+      ['⏳',pending.length,'Pending','var(--amber)'],
+      ['🎯',avg+'%','Avg score','var(--green)'],
+      ['⏱',this.fmtTime(avgTime),'Avg time','var(--coral)']
+    ].map(([ic,v,l,c])=>`<div class="stat"><div class="bar" style="background:${c}"></div><div class="v">${v}</div><div class="l">${ic} ${l}</div></div>`).join('');
+
+    // growth line
+    const sorted=[...mine].sort((a,b)=>tsVal(a.submittedAt)-tsVal(b.submittedAt));
+    mkChart('chGrowth',{type:'line',data:{labels:sorted.map((r,i)=>'#'+(i+1)),datasets:[{label:'Score %',data:sorted.map(r=>Math.round(r.score/r.total*100)),
+      borderColor:'#4361EE',backgroundColor:'rgba(67,97,238,.12)',fill:true,tension:.35,pointRadius:5,pointBackgroundColor:'#4361EE'}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}});
+
+    // correct vs incorrect
+    let corr=0,incorr=0; mine.forEach(r=>{corr+=r.correctCount||0;incorr+=(r.qCount||0)-(r.correctCount||0);});
+    mkChart('chCorrect',{type:'doughnut',data:{labels:['Correct','Incorrect'],datasets:[{data:[corr,incorr||(mine.length?0:1)],backgroundColor:['#2EC27E','#E5484D'],borderWidth:0}]},
+      options:{cutout:'62%',plugins:{legend:{position:'bottom'}}}});
+
+    // pending list
+    const c=$('#stuPending');
+    if(!pending.length){ c.innerHTML=`<div class="empty"><div class="e-ic">🎉</div>All caught up — no pending tests!</div>`; }
+    else c.innerHTML=pending.map(t=>this.testRow(t,false)).join('');
+  },
+
+  async stuTests(){
+    const [tests,mine]=await Promise.all([this.assignedTests(),this.myResults()]);
+    const doneMap={}; mine.forEach(r=>doneMap[r.testId]=r);
+    const c=$('#stuTestList');
+    if(!tests.length){ c.innerHTML=`<div class="empty"><div class="e-ic">📝</div>No tests assigned yet.</div>`; return; }
+    c.innerHTML=tests.map(t=>this.testRow(t,doneMap[t.id])).join('');
+  },
+  testRow(t,result){
+    const done=!!result;
+    const pct=done?Math.round(result.score/result.total*100):0;
+    return `<div class="test-item">
+      <div class="ti-main">
+        <h3>${esc(t.title)} ${done?`<span class="review-tag c">${pct}%</span>`:''}</h3>
+        ${t.desc?`<div style="color:var(--muted);font-size:.85rem;margin-top:3px">${esc(t.desc)}</div>`:''}
+        <div class="meta">
+          <span class="chip q">${t.questions.length} Q</span>
+          <span class="chip m">${t.total} marks</span>
+          ${t.timer?`<span class="chip t">⏱ ${t.timer} min</span>`:'<span class="chip">No timer</span>'}
+          ${done?`<span class="chip done">✓ Submitted</span>`:''}
+        </div>
+      </div>
+      ${done
+        ? `<button class="btn btn-ghost btn-sm" onclick="App.reviewTest('${t.id}')">🔍 Review answers</button>`
+        : `<button class="btn btn-coral btn-sm" onclick="App.startTest('${t.id}')">▶️ Start test</button>`}
+    </div>`;
+  },
+
+  async stuAnalytics(){
+    const mine=await this.myResults();
+    const avg=mine.length?Math.round(mine.reduce((a,r)=>a+r.score/r.total*100,0)/mine.length):0;
+    const best=mine.length?Math.max(...mine.map(r=>Math.round(r.score/r.total*100))):0;
+    const avgTime=mine.length?Math.round(mine.reduce((a,r)=>a+r.timeTaken,0)/mine.length):0;
+    let corr=0,tot=0; mine.forEach(r=>{corr+=r.correctCount||0;tot+=r.qCount||0;});
+    const acc=tot?Math.round(corr/tot*100):0;
+    $('#stuAnaStats').innerHTML=[
+      ['🎯',avg+'%','Average','var(--blue)'],
+      ['🌟',best+'%','Best score','var(--green)'],
+      ['✅',acc+'%','Accuracy','var(--teal)'],
+      ['⏱',this.fmtTime(avgTime),'Avg time','var(--coral)']
+    ].map(([ic,v,l,c])=>`<div class="stat"><div class="bar" style="background:${c}"></div><div class="v">${v}</div><div class="l">${ic} ${l}</div></div>`).join('');
+
+    const sorted=[...mine].sort((a,b)=>tsVal(a.submittedAt)-tsVal(b.submittedAt));
+    mkChart('chPerTest',{type:'bar',data:{labels:sorted.map(r=>r.testTitle),datasets:[{label:'Score %',data:sorted.map(r=>Math.round(r.score/r.total*100)),backgroundColor:PALETTE,borderRadius:10}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}});
+
+    const avgMin=avgTime/60;
+    mkChart('chTime',{type:'bar',data:{labels:sorted.map(r=>r.testTitle),datasets:[{label:'Minutes',data:sorted.map(r=>+(r.timeTaken/60).toFixed(1)),backgroundColor:'#FFB703',borderRadius:10},
+      {label:'Your avg',type:'line',data:sorted.map(()=>+avgMin.toFixed(1)),borderColor:'#FF6B6B',borderDash:[6,5],pointRadius:0}]},
+      options:{scales:{y:{beginAtZero:true}}}});
+  },
+
+  /* ----- taking a test ----- */
+  async startTest(id){
+    const tests=await DB.all('tests'); const t=tests.find(x=>x.id===id); if(!t) return;
+    this.taking={test:t, startedAt:Date.now()};
+    // show take panel
+    $$('#studentDash .panel').forEach(p=>p.classList.remove('active'));
+    $('#s-take').classList.add('active');
+    $('#stuTabs').style.visibility='hidden';
+    $('#takeTitle').textContent=t.title;
+    $('#takeMeta').textContent=`${t.questions.length} questions · ${t.total} marks`;
+    $('#takeQuestions').innerHTML=t.questions.map((q,i)=>this.renderTakeQ(q,i)).join('');
+    window.scrollTo({top:0,behavior:'smooth'});
+    // timer
+    const tm=$('#takeTimer');
+    if(t.timer){
+      tm.classList.remove('hidden');
+      this.remaining=t.timer*60;
+      this.tickTimer();
+      this.timerInt=setInterval(()=>this.tickTimer(),1000);
+    } else tm.classList.add('hidden');
+  },
+  renderTakeQ(q,i){
+    const img=q.image?`<img class="q-img" src="${esc(q.image)}">`:'';
+    let body;
+    if(q.type.endsWith('mcq')){
+      body=q.options.map((o,oi)=>`<label class="choice-opt" onclick="this.closest('.q-card').querySelectorAll('.choice-opt').forEach(e=>e.classList.remove('sel'));this.classList.add('sel')">
+        <input type="radio" name="ans_${q.id}" value="${oi}"> ${esc(o)}</label>`).join('');
+    } else {
+      body=`<input class="field" style="width:100%;padding:13px 15px;border-radius:13px;border:1.5px solid var(--line)" name="ans_${q.id}" placeholder="Type your answer...">`;
+    }
+    return `<div class="q-card" id="card_${q.id}">
+      <div class="qtitle">Q${i+1}. ${esc(q.text)}</div>
+      <span class="qmark">${q.marks} mark${q.marks>1?'s':''}</span>
+      ${img}${body}</div>`;
+  },
+  tickTimer(){
+    const tm=$('#takeTimer');
+    if(this.remaining<=0){ this.timeUp(); return; }
+    tm.textContent=this.fmtClock(this.remaining);
+    tm.classList.toggle('warn',this.remaining<=30);
+    this.remaining--;
+  },
+  timeUp(){ clearInterval(this.timerInt); toast("⏰ Time's up — submitting!",'bad'); this.submitTest(true); },
+
+  async submitTest(auto=false){
+    if(!this.taking) return;
+    const t=this.taking.test;
+    if(!auto){
+      // confirm
+      const answered=t.questions.filter(q=>this.getAnswer(q)!==null).length;
+      if(answered<t.questions.length){
+        let proceed=false;
+        await new Promise(res=>{
+          this.modal(`<div class="modal"><h2>Submit now?</h2><p class="sub">You answered ${answered}/${t.questions.length} questions. Unanswered ones get 0.</p>
+            <div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="App.closeModal();window._res(false)">Keep working</button>
+            <button class="btn btn-coral btn-block" onclick="App.closeModal();window._res(true)">Submit</button></div></div>`);
+          window._res=v=>{proceed=v;res();};
+        });
+        if(!proceed) return;
+      }
+    }
+    clearInterval(this.timerInt);
+    // grade
+    let score=0, correctCount=0; const detail=[];
+    t.questions.forEach(q=>{
+      const ans=this.getAnswer(q);
+      let ok=false;
+      if(q.type.endsWith('mcq')) ok = ans!==null && parseInt(ans)===q.correctIndex;
+      else ok = ans!==null && norm(ans)===norm(q.correctText);
+      if(ok){ score+=q.marks; correctCount++; }
+      detail.push({qid:q.id, given:ans, ok});
+    });
+    const timeTaken=Math.round((Date.now()-this.taking.startedAt)/1000);
+    const result={
+      testId:t.id, testTitle:t.title, studentId:this.session.id, studentName:this.session.name,
+      score, total:t.total, correctCount, qCount:t.questions.length,
+      timeTaken, detail, submittedAt: DB.online? serverTimestamp():Date.now()
+    };
+    await DB.add('results',result);
+    this.taking=null;
+    $('#stuTabs').style.visibility='visible';
+    this.showResultSplash(result,t);
+  },
+  getAnswer(q){
+    const els=$$(`[name="ans_${q.id}"]`);
+    if(q.type.endsWith('mcq')){ const sel=els.find(e=>e.checked); return sel?sel.value:null; }
+    return els[0] && els[0].value.trim()!==''? els[0].value : null;
+  },
+  showResultSplash(r,t){
+    const pct=Math.round(r.score/r.total*100);
+    const msg = pct>=80?'Outstanding! 🌟': pct>=60?'Great job! 🎉': pct>=40?'Good effort! 💪':'Keep practising! 📚';
+    const col = pct>=40?'var(--green)':'var(--coral)';
+    this.modal(`<div class="modal"><div class="result-splash">
+      <div class="score-ring">
+        <svg width="170" height="170" viewBox="0 0 170 170">
+          <circle cx="85" cy="85" r="74" fill="none" stroke="var(--line)" stroke-width="14"/>
+          <circle cx="85" cy="85" r="74" fill="none" stroke="${col}" stroke-width="14" stroke-linecap="round"
+            stroke-dasharray="${2*Math.PI*74}" stroke-dashoffset="${2*Math.PI*74*(1-pct/100)}"
+            transform="rotate(-90 85 85)" style="transition:stroke-dashoffset 1s ease"/>
+        </svg>
+        <div class="num" style="color:${col}">${pct}%</div>
+      </div>
+      <h2>${msg}</h2>
+      <p class="sub">You scored <b>${r.score}/${r.total}</b> · ${r.correctCount}/${r.qCount} correct · ${this.fmtTime(r.timeTaken)}</p>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn btn-ghost btn-block" onclick="App.closeModal();App.backToTests()">Done</button>
+        <button class="btn btn-coral btn-block" onclick="App.closeModal();App.reviewTest('${t.id}')">🔍 See answers</button>
+      </div>
+    </div></div>`);
+  },
+  backToTests(){
+    $$('#studentDash .panel').forEach(p=>p.classList.remove('active'));
+    $$('#studentDash .tab').forEach(t=>t.classList.remove('active'));
+    const tt=$$('#studentDash .tab').find(t=>t.dataset.tab==='s-tests'); tt.classList.add('active');
+    $('#s-tests').classList.add('active');
+    $('#stuTabs').style.visibility='visible';
+    this.stuTests();
+  },
+
+  async reviewTest(id){
+    const [tests,mine]=await Promise.all([DB.all('tests'),this.myResults()]);
+    const t=tests.find(x=>x.id===id);
+    const r=mine.filter(x=>x.testId===id).sort((a,b)=>tsVal(b.submittedAt)-tsVal(a.submittedAt))[0];
+    if(!t||!r) return;
+    $$('#studentDash .panel').forEach(p=>p.classList.remove('active'));
+    $('#s-review').classList.add('active');
+    $('#stuTabs').style.visibility='hidden';
+    $('#reviewTitle').textContent=t.title+' — Review';
+    $('#reviewMeta').textContent=`Scored ${r.score}/${r.total} (${Math.round(r.score/r.total*100)}%)`;
+    const dmap={}; (r.detail||[]).forEach(d=>dmap[d.qid]=d);
+    $('#reviewQuestions').innerHTML=t.questions.map((q,i)=>{
+      const d=dmap[q.id]||{}; const ok=d.ok;
+      const img=q.image?`<img class="q-img" src="${esc(q.image)}">`:'';
+      let body;
+      if(q.type.endsWith('mcq')){
+        body=q.options.map((o,oi)=>{
+          let cls='choice-opt';
+          if(oi===q.correctIndex) cls+=' correct';
+          if(d.given!==null && parseInt(d.given)===oi && oi!==q.correctIndex) cls+=' wrong';
+          return `<div class="${cls}">${esc(o)} ${oi===q.correctIndex?'<span class="review-tag c">correct</span>':''} ${(d.given!==null&&parseInt(d.given)===oi)?'<span style="margin-left:auto;font-size:.8rem;color:var(--muted)">your pick</span>':''}</div>`;
+        }).join('');
+      } else {
+        const given=d.given==null?'(blank)':esc(d.given);
+        body=`<div class="choice-opt ${ok?'correct':'wrong'}">Your answer: <b>${given}</b></div>
+              ${!ok?`<div class="choice-opt correct">Correct answer: <b>${esc(q.correctText)}</b></div>`:''}`;
+      }
+      return `<div class="q-card">
+        <div class="qtitle">Q${i+1}. ${esc(q.text)} <span class="review-tag ${ok?'c':'w'}">${ok?'+'+q.marks:'0'} / ${q.marks}</span></div>
+        ${img}${body}</div>`;
+    }).join('');
+    window.scrollTo({top:0,behavior:'smooth'});
+  },
+
+  /* ---------- misc ---------- */
+  fmtTime(sec){ sec=Math.max(0,Math.round(sec||0)); const m=Math.floor(sec/60),s=sec%60; return m?`${m}m ${s}s`:`${s}s`; },
+  fmtClock(sec){ const m=Math.floor(sec/60),s=sec%60; return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; },
+  logout(){
+    clearInterval(this.timerInt); this.session=null; this.taking=null;
+    $('#topActions').innerHTML=`<button class="btn btn-ghost btn-sm" onclick="App.openLogin('student')">Student</button>
+      <button class="btn btn-primary btn-sm" onclick="App.openLogin('admin')">Admin</button>`;
+    this.show('landing');
+  }
+};
+
+window.App = App;
+App.init();
+</script>
+</body>
+</html>
