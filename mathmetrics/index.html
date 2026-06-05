@@ -658,30 +658,32 @@ a{color:inherit}
      using your browser's localStorage so you can test everything. -->
 <script>
   window.FIREBASE_CONFIG = {
-    apiKey: "PASTE_API_KEY",
-    authDomain: "PASTE_PROJECT.firebaseapp.com",
-    projectId: "PASTE_PROJECT_ID",
-    storageBucket: "PASTE_PROJECT.appspot.com",
-    messagingSenderId: "PASTE_SENDER_ID",
-    appId: "PASTE_APP_ID"
+    apiKey: "AIzaSyDXT9H4no5A_gEsu09CecgPXQM9CX2zV58",
+    authDomain: "mathmetrics-92e15.firebaseapp.com",
+    projectId: "mathmetrics-92e15",
+    databaseURL: "https://mathmetrics-92e15-default-rtdb.asia-southeast1.firebasedatabase.app",
+    storageBucket: "mathmetrics-92e15.firebasestorage.app",
+    messagingSenderId: "140603753698",
+    appId: "1:140603753698:web:9e406720c6d11158bc4abb",
+    measurementId: "G-QXV7XE1J8R"
   };
 </script>
 
-<!-- ====================== APP LOGIC (Firebase + offline fallback) ====================== -->
+<!-- ====================== APP LOGIC (Realtime Database + offline fallback) ====================== -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc,
-  query, where, orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, get, remove, update, child }
+                                    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-/* ---------------- Data layer: Firebase OR localStorage ---------------- */
+/* ---------------- Data layer: Realtime DB OR localStorage ---------------- */
 const cfg = window.FIREBASE_CONFIG || {};
-const USE_FB = cfg.projectId && !String(cfg.projectId).startsWith("PASTE");
-let fdb = null;
+const USE_FB = cfg.projectId && !String(cfg.projectId).startsWith("PASTE") && cfg.databaseURL;
+let rtdb = null;
 if (USE_FB) {
-  try { fdb = getFirestore(initializeApp(cfg)); }
-  catch(e){ console.error("Firebase init failed:", e); }
+  try {
+    const app = initializeApp(cfg);
+    rtdb = getDatabase(app);
+  } catch(e){ console.error("Firebase init failed:", e); }
 }
 
 const LS = {
@@ -689,24 +691,38 @@ const LS = {
   write(k,v){ localStorage.setItem("mm_"+k, JSON.stringify(v)); }
 };
 
+/* Convert RTDB snapshot object {id1:{...}, id2:{...}} → array [{id,..}, ...] */
+function snapToArr(snapshot){
+  if(!snapshot.exists()) return [];
+  const val = snapshot.val();
+  return Object.entries(val).map(([id, data]) => ({id, ...data}));
+}
+
 const DB = {
-  online: !!fdb,
+  online: !!rtdb,
 
   async add(coll, data){
-    if(fdb){ const r = await addDoc(collection(fdb,coll), {...data, createdAt: serverTimestamp()}); return r.id; }
-    const arr = LS.read(coll); const id = "id_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
-    arr.push({id, ...data, createdAt: Date.now()}); LS.write(coll,arr); return id;
+    if(rtdb){
+      const r = await push(ref(rtdb, coll), {...data, createdAt: Date.now()});
+      return r.key;
+    }
+    const arr = LS.read(coll);
+    const id = "id_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
+    arr.push({id, ...data, createdAt: Date.now()}); LS.write(coll, arr); return id;
   },
   async all(coll){
-    if(fdb){ const s = await getDocs(collection(fdb,coll)); return s.docs.map(d=>({id:d.id, ...d.data()})); }
+    if(rtdb){
+      const snap = await get(ref(rtdb, coll));
+      return snapToArr(snap);
+    }
     return LS.read(coll);
   },
   async remove(coll, id){
-    if(fdb){ await deleteDoc(doc(fdb,coll,id)); return; }
+    if(rtdb){ await remove(ref(rtdb, coll+'/'+id)); return; }
     LS.write(coll, LS.read(coll).filter(x=>x.id!==id));
   },
   async update(coll, id, data){
-    if(fdb){ await updateDoc(doc(fdb,coll,id), data); return; }
+    if(rtdb){ await update(ref(rtdb, coll+'/'+id), data); return; }
     const arr=LS.read(coll); const i=arr.findIndex(x=>x.id===id);
     if(i>-1){ arr[i]={...arr[i],...data}; LS.write(coll,arr); }
   }
@@ -718,7 +734,7 @@ const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
 const esc = s => String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const norm = s => String(s??"").trim().toLowerCase().replace(/\s+/g,' ');
 function toast(msg,type=""){ const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg; $('#toastRoot').appendChild(t); setTimeout(()=>t.remove(),2600); }
-function tsVal(c){ if(!c) return 0; if(typeof c==='number') return c; if(c.seconds) return c.seconds*1000; if(c.toMillis) return c.toMillis(); return new Date(c).getTime()||0; }
+function tsVal(c){ if(!c) return 0; if(typeof c==='number') return c; return new Date(c).getTime()||0; }
 
 /* ---------------- Charts registry ---------------- */
 const charts = {};
@@ -757,8 +773,8 @@ const App = {
   renderCfgBanners(){
     const on = DB.online;
     const html = on
-      ? `<div class="cfg-banner ok">🟢 Connected to Firebase — data is saved to the cloud.</div>`
-      : `<div class="cfg-banner">🟡 Offline mode (browser storage). Paste your Firebase config in the file to go online — see the setup guide.</div>`;
+      ? `<div class="cfg-banner ok">🟢 Connected to Firebase Realtime Database — data is saved to the cloud.</div>`
+      : `<div class="cfg-banner">🟡 Offline mode (browser storage). Add your Firebase config to go online.</div>`;
     $('#cfgBannerAdmin').innerHTML=html;
     $('#cfgBannerStudent').innerHTML=html;
   },
@@ -1330,7 +1346,7 @@ const App = {
     const result={
       testId:t.id, testTitle:t.title, studentId:this.session.id, studentName:this.session.name,
       score, total:t.total, correctCount, qCount:t.questions.length,
-      timeTaken, detail, submittedAt: DB.online? serverTimestamp():Date.now()
+      timeTaken, detail, submittedAt: Date.now()
     };
     await DB.add('results',result);
     this.taking=null;
